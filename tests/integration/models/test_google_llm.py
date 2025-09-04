@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from google.adk.models.google_llm import Gemini
+from google.adk.models.google_llm import Gemma
 from google.adk.models.llm_request import LlmRequest
 from google.adk.models.llm_response import LlmResponse
 from google.genai import types
@@ -20,16 +21,29 @@ from google.genai.types import Content
 from google.genai.types import Part
 import pytest
 
+DEFAULT_GEMINI_MODEL = "gemini-1.5-flash"
+DEFAULT_GEMMA_MODEL = "gemma-3-1b-it"
+
 
 @pytest.fixture
 def gemini_llm():
-  return Gemini(model="gemini-1.5-flash")
+  return Gemini(model=DEFAULT_GEMINI_MODEL)
 
 
 @pytest.fixture
-def llm_request():
+def gemma_llm():
+  return Gemma(model=DEFAULT_GEMMA_MODEL)
+
+
+@pytest.fixture
+def llm(request):
+  return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def gemini_request():
   return LlmRequest(
-      model="gemini-1.5-flash",
+      model=DEFAULT_GEMINI_MODEL,
       contents=[Content(role="user", parts=[Part.from_text(text="Hello")])],
       config=types.GenerateContentConfig(
           temperature=0.1,
@@ -39,19 +53,54 @@ def llm_request():
   )
 
 
+@pytest.fixture
+def gemma_request():
+  return LlmRequest(
+      model=DEFAULT_GEMMA_MODEL,
+      contents=[
+          Content(
+              role="user",
+              parts=[
+                  Part.from_text(text="You are a helpful assistant."),
+                  Part.from_text(text="Hello!"),
+              ],
+          )
+      ],
+      config=types.GenerateContentConfig(
+          temperature=0.1,
+          response_modalities=[types.Modality.TEXT],
+          system_instruction="Talk like a pirate.",
+      ),
+  )
+
+
+@pytest.fixture
+def llm_request(request):
+  return request.getfixturevalue(request.param)
+
+
 @pytest.mark.asyncio
-async def test_generate_content_async(gemini_llm, llm_request):
-  async for response in gemini_llm.generate_content_async(llm_request):
+@pytest.mark.parametrize(
+    "llm, llm_request, llm_backend",
+    [
+        ("gemini_llm", "gemini_request", "GOOGLE_AI"),
+        ("gemini_llm", "gemini_request", "VERTEX"),
+        ("gemma_llm", "gemma_request", "GOOGLE_AI"),
+    ],
+    indirect=True,
+)
+async def test_generate_content_async(llm, llm_request):
+  async for response in llm.generate_content_async(llm_request):
     assert isinstance(response, LlmResponse)
     assert response.content.parts[0].text
 
 
 @pytest.mark.asyncio
-async def test_generate_content_async_stream(gemini_llm, llm_request):
+async def test_generate_content_async_stream(gemini_llm, gemini_request):
   responses = [
       resp
       async for resp in gemini_llm.generate_content_async(
-          llm_request, stream=True
+          gemini_request, stream=True
       )
   ]
   text = ""
