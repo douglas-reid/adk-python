@@ -20,6 +20,7 @@ from functools import cached_property
 import json
 import logging
 import os
+import re
 import sys
 from typing import Any
 from typing import AsyncGenerator
@@ -445,6 +446,8 @@ def _remove_display_name_if_present(
 class Gemma(Gemini):
   """Integration for Gemma models exposed via the Gemini API.
 
+  Only Gemma 3 models are supported at this time.
+
   For full documentation, see: https://ai.google.dev/gemma/docs/core/
 
   NOTE: Gemma does **NOT** support system instructions. Any system instructions
@@ -463,9 +466,7 @@ class Gemma(Gemini):
   usage via the Gemini API.
   """
 
-  model: str = (
-      'gemma-3-27b-it'  # Others: [gemma-3-1b-it, gemma-3-4b-it, gemma-3-12b-it]
-  )
+  model: str = 'gemma-3-27b-it'  # Others: [gemma-3-1b-it, gemma-3-4b-it, gemma-3-12b-it]
 
   @classmethod
   @override
@@ -477,7 +478,7 @@ class Gemma(Gemini):
     """
 
     return [
-        r'gemma-.*',
+        r'gemma-3.*',
     ]
 
   @cached_property
@@ -494,7 +495,7 @@ class Gemma(Gemini):
 
       # NOTE: if history is preserved, we must include the system instructions ONLY once at the beginning
       # of any chain of contents.
-      if len(contents) >= 1:
+      if contents:
         if contents[0] != instruction_content:
           # only prepend if it hasn't already been done
           llm_request.contents = [instruction_content] + contents
@@ -663,8 +664,6 @@ def gemma_functions_after_model_callback(
     return
 
   try:
-    import re
-
     json_candidate = None
 
     markdown_code_block_pattern = re.compile(
@@ -720,7 +719,6 @@ def _get_last_valid_json_substring(text: str) -> tuple[bool, str | None]:
   decoder = json.JSONDecoder()
   last_json_str = None
   start_pos = 0
-  first_brace_index = 0
   while start_pos < len(text):
     try:
       first_brace_index = text.index('{', start_pos)

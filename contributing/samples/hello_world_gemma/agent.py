@@ -45,7 +45,7 @@ async def check_prime(nums: list[int]) -> str:
   """
   primes = set()
   for number in nums:
-    number = int(number)
+    number = number
     if number <= 1:
       continue
     is_prime = True
