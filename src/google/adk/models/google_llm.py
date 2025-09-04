@@ -466,7 +466,9 @@ class Gemma(Gemini):
   usage via the Gemini API.
   """
 
-  model: str = 'gemma-3-27b-it'  # Others: [gemma-3-1b-it, gemma-3-4b-it, gemma-3-12b-it]
+  model: str = (
+      'gemma-3-27b-it'  # Others: [gemma-3-1b-it, gemma-3-4b-it, gemma-3-12b-it]
+  )
 
   @classmethod
   @override
