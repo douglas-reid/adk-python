@@ -16,9 +16,7 @@
 import random
 
 from google.adk.agents.llm_agent import Agent
-from google.adk.models.google_llm import Gemma
-from google.adk.models.google_llm import gemma_functions_after_model_callback
-from google.adk.models.google_llm import gemma_functions_before_model_callback
+from google.adk.models.gemma_llm import Gemma
 from google.genai.types import GenerateContentConfig
 
 
@@ -90,8 +88,6 @@ root_agent = Agent(
         roll_die,
         check_prime,
     ],
-    before_model_callback=gemma_functions_before_model_callback,
-    after_model_callback=gemma_functions_after_model_callback,
     generate_content_config=GenerateContentConfig(
         temperature=1.0,
         top_p=0.95,
