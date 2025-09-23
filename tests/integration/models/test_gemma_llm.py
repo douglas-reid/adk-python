@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.adk.models.gemma_llm import Gemma
+from google.adk.models.gemma_llm import Gemma3GeminiAPI
 from google.adk.models.llm_request import LlmRequest
 from google.adk.models.llm_response import LlmResponse
 from google.genai import types
@@ -20,12 +20,12 @@ from google.genai.types import Content
 from google.genai.types import Part
 import pytest
 
-DEFAULT_GEMMA_MODEL = "gemma-3-1b-it"
+DEFAULT_GEMMA_MODEL = "gemma-3-12b-it"
 
 
 @pytest.fixture
 def gemma_llm():
-  return Gemma(model=DEFAULT_GEMMA_MODEL)
+  return Gemma3GeminiAPI(model=DEFAULT_GEMMA_MODEL)
 
 
 @pytest.fixture

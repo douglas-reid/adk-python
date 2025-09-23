@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import logging
 import random
 
 from google.adk.agents.llm_agent import Agent
-from google.adk.models.gemma_llm import Gemma3GeminiAPI
-from google.genai.types import GenerateContentConfig
+from google.adk.models.gemma_llm import Gemma3Ollama
+
+litellm_logger = logging.getLogger("LiteLLM")
+litellm_logger.setLevel(logging.WARNING)
 
 
 def roll_die(sides: int) -> int:
@@ -43,7 +45,7 @@ async def check_prime(nums: list[int]) -> str:
   """
   primes = set()
   for number in nums:
-    number = number
+    number = int(number)
     if number <= 1:
       continue
     is_prime = True
@@ -61,11 +63,11 @@ async def check_prime(nums: list[int]) -> str:
 
 
 root_agent = Agent(
-    model=Gemma3GeminiAPI(model="gemma-3-27b-it"),
+    model=Gemma3Ollama(model="ollama/gemma3:12b"),
     name="data_processing_agent",
     description=(
-        "hello world agent that can roll many-sided dice and check if numbers"
-        " are prime."
+        "hello world agent that can roll a dice of 8 sides and check prime"
+        " numbers."
     ),
     instruction="""
       You roll dice and answer questions about the outcome of the dice rolls.
@@ -78,7 +80,7 @@ root_agent = Agent(
       You should not check prime numbers before calling the tool.
       When you are asked to roll a die and check prime numbers, you should always make the following two function calls:
       1. You should first call the roll_die tool to get a roll. Wait for the function response before calling the check_prime tool.
-      2. After the user reports a response from roll_die tool, you should call the check_prime tool with the roll_die result.
+      2. After you get the function response from roll_die tool, you should call the check_prime tool with the roll_die result.
         2.1 If user asks you to check primes based on previous rolls, make sure you include the previous rolls in the list.
       3. When you respond, you must include the roll_die result from step 1.
       You should always perform the previous 3 steps when asking for a roll and checking prime numbers.
@@ -88,8 +90,4 @@ root_agent = Agent(
         roll_die,
         check_prime,
     ],
-    generate_content_config=GenerateContentConfig(
-        temperature=1.0,
-        top_p=0.95,
-    ),
 )

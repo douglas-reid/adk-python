@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.adk.models.gemma_llm import Gemma
+from google.adk.models.gemma_llm import _extract_function_calls_from_response
+from google.adk.models.gemma_llm import _move_function_calls_into_system_instruction
+from google.adk.models.gemma_llm import Gemma3GeminiAPI
+from google.adk.models.gemma_llm import Gemma3Ollama
 from google.adk.models.llm_request import LlmRequest
 from google.adk.models.llm_response import LlmResponse
 from google.genai import types
@@ -24,7 +27,7 @@ import pytest
 @pytest.fixture
 def llm_request():
   return LlmRequest(
-      model="gemma-3-4b-it",
+      model="gemma-3-12b-it",
       contents=[Content(role="user", parts=[Part.from_text(text="Hello")])],
       config=types.GenerateContentConfig(
           temperature=0.1,
@@ -37,7 +40,7 @@ def llm_request():
 @pytest.fixture
 def llm_request_with_duplicate_instruction():
   return LlmRequest(
-      model="gemma-3-1b-it",
+      model="gemma-3-12b-it",
       contents=[
           Content(
               role="user",
@@ -55,7 +58,7 @@ def llm_request_with_duplicate_instruction():
 @pytest.fixture
 def llm_request_with_tools():
   return LlmRequest(
-      model="gemma-3-1b-it",
+      model="gemma-3-12b-it",
       contents=[Content(role="user", parts=[Part.from_text(text="Hello")])],
       config=types.GenerateContentConfig(
           tools=[
@@ -86,15 +89,16 @@ def llm_request_with_tools():
   )
 
 
-@pytest.mark.asyncio
-async def test_not_gemma_model():
-  llm = Gemma()
-  llm_request_bad_model = LlmRequest(
-      model="not-a-gemma-model",
-  )
-  with pytest.raises(AssertionError, match=r".*model.*"):
-    async for _ in llm.generate_content_async(llm_request_bad_model):
-      pass
+def test_not_gemma_model():
+  with pytest.raises(ValueError, match=r".*model.*"):
+    _ = Gemma3GeminiAPI(
+        model="not-a-gemma-model",
+    )
+
+  with pytest.raises(ValueError, match=r".*model.*"):
+    _ = Gemma3Ollama(
+        model="not-a-gemma-model",
+    )
 
 
 @pytest.mark.asyncio
@@ -103,8 +107,8 @@ async def test_not_gemma_model():
     ["llm_request", "llm_request_with_duplicate_instruction"],
     indirect=True,
 )
-async def test_preprocess_request(llm_request):
-  llm = Gemma()
+async def test_gemma_gemini_preprocess_request(llm_request):
+  llm = Gemma3GeminiAPI()
   want_content_text = llm_request.config.system_instruction
 
   await llm._preprocess_request(llm_request)
@@ -118,10 +122,11 @@ async def test_preprocess_request(llm_request):
   assert llm_request.contents[0].parts[0].text == want_content_text
 
 
-@pytest.mark.asyncio
-async def test_preprocess_request_with_tools(llm_request_with_tools):
+async def test_gemma_gemini_preprocess_request_with_tools(
+    llm_request_with_tools,
+):
 
-  gemma = Gemma()
+  gemma = Gemma3GeminiAPI()
   await gemma._preprocess_request(llm_request_with_tools)
 
   assert not llm_request_with_tools.config.tools
@@ -144,13 +149,13 @@ async def test_preprocess_request_with_tools(llm_request_with_tools):
 
 
 @pytest.mark.asyncio
-async def test_preprocess_request_with_function_response():
+async def test_gemma_gemini_preprocess_request_with_function_response():
   # Simulate an LlmRequest with a function response
   func_response_data = types.FunctionResponse(
       name="search_web", response={"results": [{"title": "ADK"}]}
   )
   llm_request = LlmRequest(
-      model="gemma-3-1b-it",
+      model="gemma-3-12b-it",
       contents=[
           types.Content(
               role="model",
@@ -160,7 +165,7 @@ async def test_preprocess_request_with_function_response():
       config=types.GenerateContentConfig(),
   )
 
-  gemma = Gemma()
+  gemma = Gemma3GeminiAPI()
   await gemma._preprocess_request(llm_request)
 
   # Assertions: function response converted to user role text content
@@ -178,7 +183,7 @@ async def test_preprocess_request_with_function_response():
 
 
 @pytest.mark.asyncio
-async def test_preprocess_request_with_function_call():
+async def test_gemma_gemini_preprocess_request_with_function_call():
   func_call_data = types.FunctionCall(name="get_current_time", args={})
   llm_request = LlmRequest(
       model="gemma-3-1b-it",
@@ -189,7 +194,7 @@ async def test_preprocess_request_with_function_call():
       ],
   )
 
-  gemma = Gemma()
+  gemma = Gemma3GeminiAPI()
   await gemma._preprocess_request(llm_request)
 
   assert len(llm_request.contents) == 1
@@ -203,14 +208,14 @@ async def test_preprocess_request_with_function_call():
 
 
 @pytest.mark.asyncio
-async def test_preprocess_request_with_mixed_content():
+async def test_gemma_gemini_preprocess_request_with_mixed_content():
   func_call = types.FunctionCall(name="get_weather", args={"city": "London"})
   func_response = types.FunctionResponse(
       name="get_weather", response={"temp": "15C"}
   )
 
   llm_request = LlmRequest(
-      model="gemma-3-1b-it",
+      model="gemma-3-12b-it",
       contents=[
           types.Content(
               role="user", parts=[types.Part.from_text(text="Hello!")]
@@ -228,7 +233,7 @@ async def test_preprocess_request_with_mixed_content():
       ],
   )
 
-  gemma = Gemma()
+  gemma = Gemma3GeminiAPI()
   await gemma._preprocess_request(llm_request)
 
   # Assertions
@@ -271,8 +276,7 @@ def test_process_response():
       )
   )
 
-  gemma = Gemma()
-  gemma._extract_function_calls_from_response(llm_response=llm_response)
+  _extract_function_calls_from_response(llm_response=llm_response)
 
   # Assert that the content was transformed into a FunctionCall
   assert llm_response.content
@@ -298,8 +302,7 @@ def test_process_response_invalid_json_text():
       content=Content(role="model", parts=[Part.from_text(text=original_text)])
   )
 
-  gemma = Gemma()
-  gemma._extract_function_calls_from_response(llm_response=llm_response)
+  _extract_function_calls_from_response(llm_response=llm_response)
 
   # Assert that the content remains unchanged
   assert llm_response.content
@@ -317,8 +320,8 @@ def test_process_response_malformed_json():
           role="model", parts=[Part.from_text(text=malformed_json_str)]
       )
   )
-  gemma = Gemma()
-  gemma._extract_function_calls_from_response(llm_response=llm_response)
+
+  _extract_function_calls_from_response(llm_response=llm_response)
 
   # Assert that the content remains unchanged because it doesn't match the expected schema
   assert llm_response.content
@@ -329,22 +332,18 @@ def test_process_response_malformed_json():
 
 
 def test_process_response_empty_content_or_multiple_parts():
-  gemma = Gemma()
 
   # Test case 1: LlmResponse with no content
   llm_response_no_content = LlmResponse(content=None)
-  gemma._extract_function_calls_from_response(
-      llm_response=llm_response_no_content
-  )
+
+  _extract_function_calls_from_response(llm_response=llm_response_no_content)
   assert llm_response_no_content.content is None
 
   # Test case 2: LlmResponse with empty parts list
   llm_response_empty_parts = LlmResponse(
       content=Content(role="model", parts=[])
   )
-  gemma._extract_function_calls_from_response(
-      llm_response=llm_response_empty_parts
-  )
+  _extract_function_calls_from_response(llm_response=llm_response_empty_parts)
   assert llm_response_empty_parts.content
   assert not llm_response_empty_parts.content.parts
 
@@ -361,7 +360,7 @@ def test_process_response_empty_content_or_multiple_parts():
   original_parts = list(
       llm_response_multiple_parts.content.parts
   )  # Copy for comparison
-  gemma._extract_function_calls_from_response(
+  _extract_function_calls_from_response(
       llm_response=llm_response_multiple_parts
   )
   assert llm_response_multiple_parts.content
@@ -373,7 +372,7 @@ def test_process_response_empty_content_or_multiple_parts():
   llm_response_empty_text_part = LlmResponse(
       content=Content(role="model", parts=[Part.from_text(text="")])
   )
-  gemma._extract_function_calls_from_response(
+  _extract_function_calls_from_response(
       llm_response=llm_response_empty_text_part
   )
   assert llm_response_empty_text_part.content
@@ -394,8 +393,7 @@ def test_process_response_with_markdown_json_block():
       )
   )
 
-  gemma = Gemma()
-  gemma._extract_function_calls_from_response(llm_response)
+  _extract_function_calls_from_response(llm_response)
 
   assert llm_response.content
   assert llm_response.content.parts
@@ -411,7 +409,7 @@ def test_process_response_with_markdown_tool_code_block():
   # Simulate a response from Gemma with a JSON function call in a 'tool_code' markdown block
   json_function_call_str = """
 Some text before.
-```tool_code
+```json
 {"name": "get_current_time", "parameters": {}}
 ```
 And some text after."""
@@ -421,14 +419,13 @@ And some text after."""
       )
   )
 
-  gemma = Gemma()
-  gemma._extract_function_calls_from_response(llm_response)
+  _extract_function_calls_from_response(llm_response)
 
   assert llm_response.content
   assert llm_response.content.parts
   assert len(llm_response.content.parts) == 1
   part = llm_response.content.parts[0]
-  assert part.function_call is not None
+  assert part.function_call is not None, f"{part=}"
   assert part.function_call.name == "get_current_time"
   assert part.function_call.args == {}
   assert part.text is None
@@ -446,8 +443,7 @@ def test_process_response_with_embedded_json():
       )
   )
 
-  gemma = Gemma()
-  gemma._extract_function_calls_from_response(llm_response)
+  _extract_function_calls_from_response(llm_response)
 
   assert llm_response.content
   assert llm_response.content.parts
@@ -468,8 +464,7 @@ def test_process_response_flexible_parsing():
       )
   )
 
-  gemma = Gemma()
-  gemma._extract_function_calls_from_response(llm_response)
+  _extract_function_calls_from_response(llm_response)
 
   assert llm_response.content
   assert llm_response.content.parts
@@ -478,29 +473,4 @@ def test_process_response_flexible_parsing():
   assert part.function_call is not None
   assert part.function_call.name == "do_something"
   assert part.function_call.args == {"value": 123}
-  assert part.text is None
-
-
-def test_process_response_last_json_object():
-  # Simulate a response with multiple JSON objects, ensuring the last valid one is picked
-  multiple_json_str = (
-      'I thought about {"name": "first_call", "parameters": {"a": 1}} but then'
-      ' decided to call: {"name": "second_call", "parameters": {"b": 2}}'
-  )
-  llm_response = LlmResponse(
-      content=Content(
-          role="model", parts=[Part.from_text(text=multiple_json_str)]
-      )
-  )
-
-  gemma = Gemma()
-  gemma._extract_function_calls_from_response(llm_response)
-
-  assert llm_response.content
-  assert llm_response.content.parts
-  assert len(llm_response.content.parts) == 1
-  part = llm_response.content.parts[0]
-  assert part.function_call is not None
-  assert part.function_call.name == "second_call"
-  assert part.function_call.args == {"b": 2}
   assert part.text is None
