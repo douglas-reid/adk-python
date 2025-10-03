@@ -135,7 +135,8 @@ def _rearrange_events_for_latest_function_response(
   Returns:
     A list of events with the latest function_response rearranged.
   """
-  if not events:
+  if len(events) < 2:
+    # No need to process, since there is no function_call.
     return events
 
   function_responses = events[-1].get_function_responses()
@@ -350,6 +351,8 @@ def _get_current_turn_contents(
   # Find the latest event that starts the current turn and process from there
   for i in range(len(events) - 1, -1, -1):
     event = events[i]
+    if not event.content:
+      continue
     if event.author == 'user' or _is_other_agent_reply(agent_name, event):
       return _get_contents(current_branch, events[i:], agent_name)
 
