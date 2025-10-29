@@ -122,6 +122,7 @@ async def test_gemma_gemini_preprocess_request(llm_request):
   assert llm_request.contents[0].parts[0].text == want_content_text
 
 
+@pytest.mark.asyncio
 async def test_gemma_gemini_preprocess_request_with_tools(
     llm_request_with_tools,
 ):

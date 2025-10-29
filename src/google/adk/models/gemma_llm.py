@@ -243,7 +243,15 @@ def _extract_function_calls_from_response(llm_response: LlmResponse):
 
   try:
     import instructor
+  except ImportError as e:
+    logger.warning(
+        "The 'instructor' package is required for Gemma3 function calling but"
+        " is not installed. Text response will be returned. To enable function"
+        ' calling, run: pip install "google-adk[extensions]"'
+    )
+    return
 
+  try:
     json_candidate = instructor.utils.extract_json_from_codeblock(response_text)
 
     if not json_candidate:

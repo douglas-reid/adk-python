@@ -113,6 +113,7 @@ test = [
   "a2a-sdk>=0.3.0,<0.4.0;python_version>='3.10'",
   "anthropic>=0.43.0",                            # For anthropic model tests
   "crewai[tools];python_version>='3.10'",         # For CrewaiTool tests
+  "instructor>=1.11.3",                           # For instructor (Gemma3 parsing)
   "kubernetes>=29.0.0",                           # For GkeCodeExecutor
   "langchain-community>=0.3.17",
   "langgraph>=0.2.60, <0.4.8",                    # For LangGraphAgent
@@ -144,6 +145,7 @@ extensions = [
   "beautifulsoup4>=3.2.2",                      # For load_web_page tool.
   "crewai[tools];python_version>='3.10'",       # For CrewaiTool
   "docker>=7.0.0",                              # For ContainerCodeExecutor
+  "instructor>=1.11.3",                         # For instructor (Gemma3 parsing)
   "kubernetes>=29.0.0",                         # For GkeCodeExecutor
   "langgraph>=0.2.60, <0.4.8",                  # For LangGraphAgent
   "litellm>=1.75.5",                            # For LiteLlm class. Currently has OpenAI limitations. TODO: once LiteLlm fix it
@@ -151,7 +153,6 @@ extensions = [
   "llama-index-embeddings-google-genai>=0.3.0", # For files retrieval using LlamaIndex.
   "lxml>=5.3.0",                                # For load_web_page tool.
   "toolbox-core>=0.1.0",                        # For tools.toolbox_toolset.ToolboxToolset
-  "instructor>=1.11.3",                         # For instructor (Gemma3 parsing)
 ]
 
 otel-gcp = ["opentelemetry-instrumentation-google-genai>=0.3b0, <1.0.0"]
