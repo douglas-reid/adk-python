@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This sample uses the `Gemma` class, which provides workarounds for Gemma 3's
-# lack of native function calling. For Gemma 4+, use `Gemini` directly —
-# see the hello_world_gemma4/ sample.
+# Gemma 4 sample — uses the standard `Gemini` class directly.
+# Gemma 4 supports native function calling and system instructions,
+# so no workaround classes are needed.
+# Compare with the hello_world_gemma/ sample (Gemma 3, requires workarounds).
 
 import random
 
 from google.adk.agents.llm_agent import Agent
-from google.adk.models.gemma_llm import Gemma
-from google.genai.types import GenerateContentConfig
+from google.adk.models.google_llm import Gemini
 
 
 def roll_die(sides: int) -> int:
@@ -46,7 +46,7 @@ async def check_prime(nums: list[int]) -> str:
   """
   primes = set()
   for number in nums:
-    number = number
+    number = int(number)
     if number <= 1:
       continue
     is_prime = True
@@ -64,35 +64,40 @@ async def check_prime(nums: list[int]) -> str:
 
 
 root_agent = Agent(
-    model=Gemma(model="gemma-3-27b-it"),
+    model=Gemini(model="gemma-4-31b-it"),
     name="data_processing_agent",
     description=(
-        "hello world agent that can roll many-sided dice and check if numbers"
-        " are prime."
+        "Hello world agent using Gemma 4 via the standard Gemini class."
     ),
-    instruction="""
+    instruction="""\
       You roll dice and answer questions about the outcome of the dice rolls.
       You can roll dice of different sizes.
-      You can use multiple tools in parallel by calling functions in parallel(in one request and in one round).
-      It is ok to discuss previous dice roles, and comment on the dice rolls.
-      When you are asked to roll a die, you must call the roll_die tool with the number of sides. Be sure to pass in an integer. Do not pass in a string.
+      You can use multiple tools in parallel by calling functions in parallel
+      (in one request and in one round).
+      It is ok to discuss previous dice rolls, and comment on the dice rolls.
+      When you are asked to roll a die, you must call the roll_die tool with
+      the number of sides. Be sure to pass in an integer. Do not pass in a
+      string.
       You should never roll a die on your own.
-      When checking prime numbers, call the check_prime tool with a list of integers. Be sure to pass in a list of integers. You should never pass in a string.
+      When checking prime numbers, call the check_prime tool with a list of
+      integers. Be sure to pass in a list of integers. You should never pass
+      in a string.
       You should not check prime numbers before calling the tool.
-      When you are asked to roll a die and check prime numbers, you should always make the following two function calls:
-      1. You should first call the roll_die tool to get a roll. Wait for the function response before calling the check_prime tool.
-      2. After the user reports a response from roll_die tool, you should call the check_prime tool with the roll_die result.
-        2.1 If user asks you to check primes based on previous rolls, make sure you include the previous rolls in the list.
+      When you are asked to roll a die and check prime numbers, you should
+      always make the following two function calls:
+      1. You should first call the roll_die tool to get a roll. Wait for the
+         function response before calling the check_prime tool.
+      2. After you get the function response from roll_die tool, you should
+         call the check_prime tool with the roll_die result.
+        2.1 If user asks you to check primes based on previous rolls, make
+            sure you include the previous rolls in the list.
       3. When you respond, you must include the roll_die result from step 1.
-      You should always perform the previous 3 steps when asking for a roll and checking prime numbers.
+      You should always perform the previous 3 steps when asking for a roll
+      and checking prime numbers.
       You should not rely on the previous history on prime results.
     """,
     tools=[
         roll_die,
         check_prime,
     ],
-    generate_content_config=GenerateContentConfig(
-        temperature=1.0,
-        top_p=0.95,
-    ),
 )

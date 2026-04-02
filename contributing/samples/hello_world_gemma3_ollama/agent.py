@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This sample uses `Gemma3Ollama`, which provides workarounds for Gemma 3's
+# lack of native function calling on Ollama. For Gemma 4+ on Ollama,
+# use `LiteLlm` directly.
+
 import logging
 import random
 

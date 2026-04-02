@@ -517,6 +517,17 @@ def test_process_response_last_json_object():
   assert part.text is None
 
 
+# Tests for Gemma 4 registry routing
+def test_gemma4_resolves_to_gemini_not_gemma():
+  """Gemma 4 models should use the standard Gemini class, not the Gemma
+  workaround class."""
+  from google.adk.models.google_llm import Gemini
+
+  resolved = models.LLMRegistry.resolve("gemma-4-31b-it")
+  assert resolved is not Gemma
+  assert resolved is Gemini
+
+
 # Tests for Gemma3Ollama (only run when LiteLLM is installed)
 try:
   from google.adk.models.gemma_llm import Gemma3Ollama

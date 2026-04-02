@@ -31,6 +31,8 @@ __all__ = [
 
 
 LLMRegistry.register(Gemini)
+# Gemma 3 integration (provides function calling workarounds).
+# For Gemma 4+, use Gemini or LiteLlm directly.
 LLMRegistry.register(Gemma)
 LLMRegistry.register(ApigeeLlm)
 
@@ -54,7 +56,8 @@ except Exception:
   # LiteLLM support requires: pip install google-adk[extensions]
   pass
 
-# Optionally register Gemma3Ollama if litellm package is installed
+# Gemma 3 on Ollama (provides function calling workarounds).
+# For Gemma 4+ on Ollama, use LiteLlm directly.
 try:
   from .gemma_llm import Gemma3Ollama
 
