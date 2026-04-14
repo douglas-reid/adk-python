@@ -14,6 +14,7 @@
 
 from google.adk import models
 from google.adk.models.gemma_llm import Gemma
+from google.adk.models.google_llm import Gemini
 from google.adk.models.llm_request import LlmRequest
 from google.adk.models.llm_response import LlmResponse
 from google.genai import types
@@ -88,8 +89,8 @@ def llm_request_with_tools():
 
 
 def test_supported_models_matches_gemma4():
-  """Gemma 4 model strings must resolve to the Gemma class via the registry."""
-  assert models.LLMRegistry.resolve("gemma-4-31b-it") is Gemma
+  """Gemma 4 model strings must resolve to the Gemini class via the registry."""
+  assert models.LLMRegistry.resolve("gemma-4-31b-it") is Gemini
 
 
 def test_supported_models_matches_gemma3():
